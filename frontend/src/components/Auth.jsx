@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import coverPng from "/assets/taskly-cover.png";
+// import coverPng from "/assets/taskly-cover.png";
 import { IoMailOutline } from "react-icons/io5";
 import { FaCircleCheck } from "react-icons/fa6";
 import { CiUser } from "react-icons/ci";
@@ -71,11 +71,11 @@ function auth() {
 
   return (
     <div className="p-3 rounded-lg lg:flex lg:items-center  h-svh  w-full overflow-hidden  lg:space-x-5">
-      <img
+      {/* <img
         src={coverPng}
         alt="cover img"
         className="lg:w-[70%] h-full rounded-lg object-cover 2xl:object-none "
-      />
+      /> */}
       <div className="right-section flex-grow h-fit  w-[295px] sm:w-80 md:w-96 rounded-lg p-5 lg:p-0 lg:rounded-none lg:h-fit lg:w-fit absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:top-0 lg:left-0 lg:translate-x-0 lg:translate-y-0 bg-white lg:bg-transparent lg:relative">
         <h1 className="font-roboto font-bold text-center w-full text-lg mb-2 lg:mb-0 lg:absolute bottom-[108%] ">
           <SiTask className="inline" /> Taskly
