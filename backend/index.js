@@ -3,7 +3,6 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const http = require("http");
-dotenv.config({ path: "./.env" });
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
@@ -11,90 +10,94 @@ const hpp = require("hpp");
 const userRouter = require("./routes/userRouter");
 const taskRouter = require("./routes/taskRouter");
 const dashboardRouter = require("./routes/dashboardRouter");
+const settingsRouter = require("./routes/settingsRouter");
 const errorController = require("./src/controllers/errorController");
-const app = express(); //app is an instance of express
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
-const settingsRouter = require("./routes/settingsRouter");
+
+dotenv.config({ path: "./.env" });
+
+const app = express(); // Express instance
 const DB = process.env.DB_CONNECTION_STRING.replace(
   "<password>",
   process.env.DB_PASSWORD
 );
 
-//ERROR HANDLING
+// ================== ERROR HANDLING ==================
 
-// This will catch any uncaught exceptions from anywhere in your app
+// Uncaught exceptions
 process.on("uncaughtException", (err) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
   console.error(err.name, err.message);
   process.exit(1);
 });
-// This will catch any unhandled promise rejections from anywhere in your app
-process.on("unhandledRejection", (err) => {
-  console.log("UNHANDLED REJECTION! 💥 Shutting down...");
-  console.error(err.name, err.message);
-  // Attempt to close server gracefully before exiting
-  server.close(() => {
-    process.exit(1);
-  });
-});
 
-// Middleware setup
-// Set Security HTTP Headers using Helmet
-app.use(helmet());
+// ================== SECURITY MIDDLEWARES ==================
 
-// Data Sanitization against NoSQL Injection attacks
-app.use(mongoSanitize());
+app.use(helmet()); // Set security headers
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(xss()); // Prevent XSS
+app.use(hpp()); // Prevent parameter pollution
 
-// Data Sanitization against XSS attacks
-app.use(xss());
-
-// Prevent HTTP Parameter Pollution
-app.use(hpp());
+// ================== CORS CONFIG ==================
 app.use(
-  cors(
-    {
-      origin: [
-        "https://pract-9x4g.vercel.app",
-        "http://localhost:5173",
-      ], // Your frontend origin
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Allowed methods
-      credentials: true,
-    } // Allows credentials (cookies) to be sent
-  )
+  cors({
+    origin: [
+      "https://pract-9x4g.vercel.app", // ✅ Your Vercel frontend
+      "http://localhost:5173", // ✅ Dev frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true, // ✅ Important for cookies/auth
+  })
 );
 
-app.use(express.json());
-app.use(cookieParser());
-// Middleware to parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: true }));
+// ================== OTHER MIDDLEWARE ==================
+
+app.use(express.json()); // Parse JSON
+app.use(cookieParser()); // Parse cookies
+app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
+
+// ================== ROUTES ==================
 
 app.use("/api/users", userRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/settings", settingsRouter);
+
+// Fallback for unmatched routes
 app.use("*", (req, res) => {
-  res.status(404).json({
-    message: "Not Found",
-  });
+  res.status(404).json({ message: "Not Found" });
 });
+
+// Global error handler
 app.use(errorController);
+
+// ================== DATABASE & SERVER ==================
 
 mongoose
   .connect(DB, {})
   .then(() => {
-    console.log("Mongodb connected");
+    console.log("✅ MongoDB connected");
 
-    if (process.env.NODE_ENV === "development") {
-      const server = http.createServer(app);
-      server.listen(process.env.PORT, () => {
-        console.log(`Server is listening on port ${process.env.PORT}`);
+    const server = http.createServer(app);
+
+    server.listen(process.env.PORT || 8080, () => {
+      console.log(`🚀 Server running on port ${process.env.PORT || 8080}`);
+    });
+
+    // Unhandled Rejections
+    process.on("unhandledRejection", (err) => {
+      console.log("UNHANDLED REJECTION! 💥 Shutting down...");
+      console.error(err.name, err.message);
+      server.close(() => {
+        process.exit(1);
       });
-    }
+    });
   })
   .catch((err) => {
-    console.error("DATABASE CONNECTION ERROR:", err);
-    process.exit(1); //appication halting with an error
+    console.error("❌ DATABASE CONNECTION ERROR:", err);
+    process.exit(1);
   });
 
+// ================== EXPORT ==================
 module.exports = app;
